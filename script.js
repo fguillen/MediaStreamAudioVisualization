@@ -1,8 +1,7 @@
 /*
+  Author Fernando Guillen
   Guided by: https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API
 */
-
-
 
 let analyser;
 let canvasContext;
@@ -14,6 +13,7 @@ let startButton;
 let pauseButton;
 let resumeButton;
 let drawVisual;
+const padding = 12;
 
 async function init() {
   startButton.classList.add("d-none");
@@ -21,7 +21,6 @@ async function init() {
   resumeButton.classList.add("d-none");
 
   await initMediaSource();
-  initCanvas();
   draw();
 }
 
@@ -32,9 +31,10 @@ function pause() {
 
   window.cancelAnimationFrame(drawVisual);
 
-  for (let i = 0; i < bufferLength; i++) {
-    console.log(dataArray[i] / 128.0);
-  }
+  // log output the buffer values
+  // for (let i = 0; i < bufferLength; i++) {
+  //   console.log(dataArray[i] / 128.0);
+  // }
 
 }
 
@@ -68,10 +68,7 @@ async function initMediaSource() {
   source.connect(analyser);
 
   analyser.fftSize = 512; // use 2048 for more definition
-  console.log("analyser.fftSize: ", analyser.fftSize);
-  console.log("analyser.frequencyBinCount: ", analyser.frequencyBinCount);
   bufferLength = analyser.frequencyBinCount;
-  // bufferLength = 1;
   dataArray = new Uint8Array(bufferLength);
 }
 
@@ -81,10 +78,18 @@ function initCanvas() {
   canvasWidth = canvas.clientWidth;
   canvasHeight = canvas.clientHeight;
 
-  console.log("canvasWidth: ", canvasWidth);
-  console.log("canvasHeight: ", canvasHeight);
+  canvasContext.fillStyle = "rgb(33, 37, 41)";
+  canvasContext.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  canvasContext.clearRect(0, 0, canvasWidth, canvasHeight);
+  canvasContext.lineWidth = 6;
+  canvasContext.strokeStyle = "rgb(165, 42, 42)";
+  canvasContext.beginPath();
+  canvasContext.moveTo(0, canvasHeight / 2);
+  canvasContext.lineTo(canvasWidth, canvasHeight / 2);
+  canvasContext.stroke();
+
+  drawCircle(padding, canvasHeight / 2);
+  drawCircle(canvasWidth - padding, canvasHeight / 2);
 }
 
 
@@ -99,15 +104,9 @@ function draw() {
   canvasContext.strokeStyle = "rgb(165, 42, 42)";
   canvasContext.beginPath();
 
-  // Borders
-  // canvasContext.moveTo(0, 0);
-  // canvasContext.lineTo(canvasWidth, 0);
-  // canvasContext.lineTo(canvasWidth, canvasHeight);
-  // canvasContext.lineTo(0, canvasHeight);
-  // canvasContext.lineTo(0, 0);
-
-  const sliceWidth = (canvasWidth * 1.0) / bufferLength;
-  let x = 0;
+  const sliceWidth = (canvasWidth - (padding * 2)) / bufferLength;
+  let x = padding;
+  const circlePoints = [];
 
   for (let i = 0; i < bufferLength; i++) {
     const v = dataArray[i] / 128.0; // half of 256 = unsigned 8 bit
@@ -115,15 +114,31 @@ function draw() {
 
     if (i === 0) {
       canvasContext.moveTo(x, y);
+      circlePoints.push([x, y]);
     } else {
       canvasContext.lineTo(x, y);
+    }
+
+    if (i == bufferLength - 1) {
+      circlePoints.push([x, y]);
     }
 
     x += sliceWidth;
   }
 
-  // canvasContext.lineTo(canvasWidth, canvasHeight / 2);
+  canvasContext.stroke();
+
+  // Draw circles in the line ends
+  circlePoints.forEach((point) => { drawCircle(point[0], point[1]) })
+}
+
+function drawCircle(x, y) {
+  canvasContext.beginPath();
+  canvasContext.arc(x, y, 10, 0, 2 * Math.PI, false);
+  canvasContext.fillStyle = "rgb(165, 42, 42)";
+  canvasContext.fill();
   canvasContext.stroke();
 }
 
 initButtons();
+initCanvas();
